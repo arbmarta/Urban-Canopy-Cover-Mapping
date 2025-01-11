@@ -3,16 +3,6 @@ var block_groups = ee.FeatureCollection('users/alexjfmartin/Block_Groups');
 var census_tracts = ee.FeatureCollection('users/alexjfmartin/Census_Tracts');
 var urban_areas = ee.FeatureCollection('users/alexjfmartin/Urban_Areas');
 
-// Display the census area shapefiles on the map
-Map.centerObject(block_groups);
-Map.addLayer(block_groups, {color: 'red'}, 'Block Groups');
-
-Map.centerObject(census_tracts);
-Map.addLayer(census_tracts, {color: 'red'}, 'Census Tracts');
-
-Map.centerObject(urban_areas);
-Map.addLayer(urban_areas, {color: 'red'}, 'Urban Areas');
-
 // Define the canopy height image and apply a mask for canopy height >= 1 meter
 var canopyHeight = ee.ImageCollection('projects/meta-forest-monitoring-okw37/assets/CanopyHeight').mosaic();
 var maskedCanopyHeight = canopyHeight.updateMask(canopyHeight.gte(1));  // Mask out values < 1
@@ -152,93 +142,28 @@ var block_groups_canopycover = block_groups.aggregate_array('UTC_Pct_y2');
 var census_tract_canopycover = census_tract.aggregate_array('UTC_Pct_y2');
 var urban_areas_canopycover = urban_areas.aggregate_array('UTC_Pct_y2');
 
-// Create a canopy cover chart for each PlanIt Geo canopy cover percentage from the shapefiles
-// Chart: census block groups
-var block_groups_canopycover_chart = ui.Chart.array.values({
-  array: block_groups_canopycover,
-  axis: 0
-})
-.setOptions({
-  title: 'Canopy Cover (%) for Block Groups',
-  hAxis: {title: 'Polygon Index'},
-  vAxis: {title: 'Canopy Cover (%)'},
-  pointSize: 4
-});
-
-print(block_groups_canopycover_chart);
-
-// Chart: census tract groups
-var census_tract_canopycover_chart = ui.Chart.array.values({
-  array: census_tract_canopycover,
-  axis: 0
-})
-.setOptions({
-  title: 'Canopy Cover (%) for Census Tracts',
-  hAxis: {title: 'Polygon Index'},
-  vAxis: {title: 'Canopy Cover (%)'},
-  pointSize: 4
-});
-
-print(census_tract_canopycover_chart);
-
-// Chart: urban areas groups
-var urban_areas_canopycover_chart = ui.Chart.array.values({
-  array: urban_areas_canopycover,
-  axis: 0
-})
-.setOptions({
-  title: 'Canopy Cover (%) for Urban Areas',
-  hAxis: {title: 'Polygon Index'},
-  vAxis: {title: 'Canopy Cover (%)'},
-  pointSize: 4
-});
-
-print(urban_areas_canopycover_chart);
-
 // Extract the PlanIt Geo urban tree canopy area (%) (historic imagery) ("UTC_Pct_y1") from the shapefiles
 var block_groups_canopycover_historic = block_groups.aggregate_array('UTC_Pct_y1');
 var census_tract_canopycover_historic = census_tract.aggregate_array('UTC_Pct_y1');
 var urban_areas_canopycover_historic = urban_areas.aggregate_array('UTC_Pct_y1');
 
 // Create a canopy cover chart for each PlanIt Geo canopy cover percentage from the shapefiles
-// Chart: census block groups
-var block_groups_canopycover_chart_historic = ui.Chart.array.values({
-  array: block_groups_canopycover_historic,
-  axis: 0
-})
-.setOptions({
-  title: 'Canopy Cover (%) for Block Groups (Historic)',
-  hAxis: {title: 'Polygon Index'},
-  vAxis: {title: 'Canopy Cover (%)'},
-  pointSize: 4
-});
+function createCanopyCoverChart(dataArray, title) {
+    return ui.Chart.array.values({
+        array: dataArray,
+        axis: 0
+    }).setOptions({
+        title: title,
+        hAxis: {title: 'Polygon Index'},
+        vAxis: {title: 'Canopy Cover (%)'},
+        pointSize: 4
+    });
+}
 
-print(block_groups_canopycover_chart_historic);
+print(createCanopyCoverChart(block_groups_canopycover, 'Canopy Cover (%) for Block Groups'));
+print(createCanopyCoverChart(census_tract_canopycover, 'Canopy Cover (%) for Census Tracts'));
+print(createCanopyCoverChart(urban_areas_canopycover, 'Canopy Cover (%) for Urban Areas'));
 
-// Chart: census tract groups
-var census_tract_canopycover_chart_historic = ui.Chart.array.values({
-  array: census_tract_canopycover_historic,
-  axis: 0
-})
-.setOptions({
-  title: 'Canopy Cover (%) for Census Tracts (Historic)',
-  hAxis: {title: 'Polygon Index'},
-  vAxis: {title: 'Canopy Cover (%)'},
-  pointSize: 4
-});
-
-print(census_tract_canopycover_chart_historic);
-
-// Chart: urban areas groups
-var urban_areas_canopycover_chart_historic = ui.Chart.array.values({
-  array: urban_areas_canopycover_historic,
-  axis: 0
-})
-.setOptions({
-  title: 'Canopy Cover (%) for Urban Areas (Historic)',
-  hAxis: {title: 'Polygon Index'},
-  vAxis: {title: 'Canopy Cover (%)'},
-  pointSize: 4
-});
-
-print(urban_areas_canopycover_chart_historic);
+print(createCanopyCoverChart(block_groups_canopycover_historic, 'Canopy Cover (%) for Block Groups (Historic)'));
+print(createCanopyCoverChart(census_tract_canopycover_historic, 'Canopy Cover (%) for Census Tracts (Historic)'));
+print(createCanopyCoverChart(urban_areas_canopycover_historic, 'Canopy Cover (%) for Urban Areas (Historic)'));
