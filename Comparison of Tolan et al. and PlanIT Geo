@@ -15,42 +15,42 @@ var palettes = require('users/gena/packages:palettes');
 
 // Other layers for reference
 var ethcanopyheight_block_groups = ee.Image('users/nlang/ETH_GlobalCanopyHeight_2020_10m_v1');
-Map.addLayer(ethcanopyheight.clip(block_groups), {
+Map.addLayer(ethcanopyheight_block_groups.clip(block_groups), {
     min: 0,
     max: 25,
     palette: palettes.matplotlib.viridis[7]
 }, 'Canopy Height Lang 2022 98%', false);
 
 var umdheight_block_groups = ee.ImageCollection("users/potapovpeter/GEDI_V27").mosaic();
-Map.addLayer(umdheight.clip(block_groups), {
+Map.addLayer(umdheight_block_groups.clip(block_groups), {
     min: 0,
     max: 25,
     palette: palettes.matplotlib.viridis[7]
 }, 'Canopy Height Potapov 2021 95%', false);
 
 var ethcanopyheight_census_tracts = ee.Image('users/nlang/ETH_GlobalCanopyHeight_2020_10m_v1');
-Map.addLayer(ethcanopyheight.clip(census_tracts), {
+Map.addLayer(ethcanopyheight_census_tracts.clip(census_tracts), {
     min: 0,
     max: 25,
     palette: palettes.matplotlib.viridis[7]
 }, 'Canopy Height Lang 2022 98%', false);
 
 var umdheight_census_tracts = ee.ImageCollection("users/potapovpeter/GEDI_V27").mosaic();
-Map.addLayer(umdheight.clip(census_tracts), {
+Map.addLayer(umdheight_census_tracts.clip(census_tracts), {
     min: 0,
     max: 25,
     palette: palettes.matplotlib.viridis[7]
 }, 'Canopy Height Potapov 2021 95%', false);
 
 var ethcanopyheight_urban_areas = ee.Image('users/nlang/ETH_GlobalCanopyHeight_2020_10m_v1');
-Map.addLayer(ethcanopyheight.clip(urban_areas), {
+Map.addLayer(ethcanopyheight_urban_areas.clip(urban_areas), {
     min: 0,
     max: 25,
     palette: palettes.matplotlib.viridis[7]
 }, 'Canopy Height Lang 2022 98%', false);
 
 var umdheight_urban_areas = ee.ImageCollection("users/potapovpeter/GEDI_V27").mosaic();
-Map.addLayer(umdheight.clip(urban_areas), {
+Map.addLayer(umdheight_urban_areas.clip(urban_areas), {
     min: 0,
     max: 25,
     palette: palettes.matplotlib.viridis[7]
