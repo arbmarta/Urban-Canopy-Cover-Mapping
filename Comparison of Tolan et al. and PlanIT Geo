@@ -167,3 +167,103 @@ print(createCanopyCoverChart(urban_areas_canopycover, 'Canopy Cover (%) for Urba
 print(createCanopyCoverChart(block_groups_canopycover_historic, 'Canopy Cover (%) for Block Groups (Historic)'));
 print(createCanopyCoverChart(census_tract_canopycover_historic, 'Canopy Cover (%) for Census Tracts (Historic)'));
 print(createCanopyCoverChart(urban_areas_canopycover_historic, 'Canopy Cover (%) for Urban Areas (Historic)'));
+
+// Define shapefiles
+var block_groups = ee.FeatureCollection('users/alexjfmartin/Block_Groups');
+var census_tracts = ee.FeatureCollection('users/alexjfmartin/Census_Tracts');
+var urban_areas = ee.FeatureCollection('users/alexjfmartin/Urban_Areas');
+
+// Define canopy height raster
+var canopyHeight = ee.ImageCollection('projects/meta-forest-monitoring-okw37/assets/CanopyHeight').mosaic();
+var maskedCanopyHeight = canopyHeight.updateMask(canopyHeight.gte(1)); // Canopy >= 1m
+
+// Function to process each shapefile and generate the plot
+function processShapefile(featureCollection, name) {
+  // Compute raster-derived canopy cover percentage
+  var processedFeatures = featureCollection.map(function(feature) {
+    var totalPixels = maskedCanopyHeight.reduceRegion({
+      reducer: ee.Reducer.count(),
+      geometry: feature.geometry(),
+      scale: 10,
+      maxPixels: 1e13
+    }).get('b1'); // Replace 'b1' with the correct band name if needed
+
+    var canopyPixels = maskedCanopyHeight.updateMask(maskedCanopyHeight.gte(1)).reduceRegion({
+      reducer: ee.Reducer.count(),
+      geometry: feature.geometry(),
+      scale: 10,
+      maxPixels: 1e13
+    }).get('b1');
+
+    // Calculate percentage of canopy pixels
+    var canopyPercent = ee.Number(canopyPixels).divide(ee.Number(totalPixels)).multiply(100);
+
+    // Add as property to the feature
+    return feature.set({
+      Raster_Canopy_Percent: canopyPercent
+    });
+  });
+
+  // Extract PlanIT Geo and raster canopy cover percentages
+  var comparisonData = processedFeatures.map(function(feature) {
+    return ee.Feature(null, {
+      PlanIT_Geo_Percent: feature.get('UTC_Pct_y2'),
+      Raster_Canopy_Percent: feature.get('Raster_Canopy_Percent')
+    });
+  });
+
+  // Convert FeatureCollection to a chart-compatible format
+  var chartData = comparisonData.reduceColumns({
+    reducers: ee.Reducer.toList(2),
+    selectors: ['PlanIT_Geo_Percent', 'Raster_Canopy_Percent']
+  });
+
+  var xData = ee.List(chartData.get('list')).map(function(el) {
+    return ee.List(el).get(0); // PlanIT Geo values
+  });
+  var yData = ee.List(chartData.get('list')).map(function(el) {
+    return ee.List(el).get(1); // Raster canopy cover values
+  });
+
+  // Create scatter plot
+  var scatterPlot = ui.Chart.array.values({
+    array: ee.Array.cat([xData, yData], 1),
+    axis: 0
+  })
+  .setChartType('ScatterChart')
+  .setOptions({
+    title: 'Comparison of Canopy Cover (PlanIT Geo vs Raster) - ' + name,
+    hAxis: {title: 'PlanIT Geo Canopy Cover (%)'},
+    vAxis: {title: 'Raster-Derived Canopy Cover (%)'},
+    pointSize: 5,
+    series: {0: {color: 'blue'}}
+  });
+
+  // Add diagonal reference line (0,0 to 100,100)
+  var refLine = ui.Chart.array.values({
+    array: ee.Array([[0, 0], [100, 100]]),
+    axis: 0
+  })
+  .setChartType('LineChart')
+  .setOptions({
+    title: '',
+    hAxis: {title: '', viewWindow: {min: 0, max: 100}},
+    vAxis: {title: '', viewWindow: {min: 0, max: 100}},
+    series: {0: {color: 'red'}}
+  });
+
+  // Print the scatter plot
+  print(scatterPlot);
+}
+
+// Shapefiles to process
+var shapefiles = [
+  {name: 'Block Groups', featureCollection: block_groups},
+  {name: 'Census Tracts', featureCollection: census_tracts},
+  {name: 'Urban Areas', featureCollection: urban_areas}
+];
+
+// Loop through shapefiles
+shapefiles.forEach(function(item) {
+  processShapefile(item.featureCollection, item.name);
+});
