@@ -214,7 +214,7 @@ function processShapefile(featureCollection, name) {
 
   // Convert FeatureCollection to a chart-compatible format
   var chartData = comparisonData.reduceColumns({
-    reducers: ee.Reducer.toList(2),
+    reducer: ee.Reducer.toList(2),
     selectors: ['PlanIT_Geo_Percent', 'Raster_Canopy_Percent']
   });
 
