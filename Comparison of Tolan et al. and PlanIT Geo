@@ -139,12 +139,12 @@ ui.root.add(controlPanel);
 
 // Extract the PlanIt Geo urban tree canopy area (%) (most current imagery) ("UTC_Pct_y2") from the shapefiles
 var block_groups_canopycover = block_groups.aggregate_array('UTC_Pct_y2');
-var census_tract_canopycover = census_tract.aggregate_array('UTC_Pct_y2');
+var census_tract_canopycover = census_tracts.aggregate_array('UTC_Pct_y2');
 var urban_areas_canopycover = urban_areas.aggregate_array('UTC_Pct_y2');
 
 // Extract the PlanIt Geo urban tree canopy area (%) (historic imagery) ("UTC_Pct_y1") from the shapefiles
 var block_groups_canopycover_historic = block_groups.aggregate_array('UTC_Pct_y1');
-var census_tract_canopycover_historic = census_tract.aggregate_array('UTC_Pct_y1');
+var census_tract_canopycover_historic = census_tracts.aggregate_array('UTC_Pct_y1');
 var urban_areas_canopycover_historic = urban_areas.aggregate_array('UTC_Pct_y1');
 
 // Create a canopy cover chart for each PlanIt Geo canopy cover percentage from the shapefiles
