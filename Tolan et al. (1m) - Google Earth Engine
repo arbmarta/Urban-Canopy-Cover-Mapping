@@ -1,46 +1,114 @@
 // Code based on Tolan et al. (2024). Very high resolution canopy height maps from RGB imagery using self-supervised vision transformer and convolutional decoder trained on aerial lidar. Remote Sensing of Environment, 300, 113888.
 // https://doi.org/10.1016/j.rse.2023.113888
 
+// Display the census area shapefiles
+var block_groups = ee.FeatureCollection('users/alexjfmartin/Block_Groups');
+var census_tracts = ee.FeatureCollection('users/alexjfmartin/Census_Tracts');
+var urban_areas = ee.FeatureCollection('users/alexjfmartin/Urban_Areas');
+
 // Define the canopy height image and apply a mask for canopy height >= 1 meter
 var canopyHeight = ee.ImageCollection('projects/meta-forest-monitoring-okw37/assets/CanopyHeight').mosaic();
 var maskedCanopyHeight = canopyHeight.updateMask(canopyHeight.gte(1));  // Mask out values < 1
 
 // Center the map on the specified geometry region
-Map.centerObject(geometry, 10);  // Adjust zoom as needed
+Map.centerObject(urban_areas, 10);  // Adjust zoom as needed
 
 // Visualization settings
 var palettes = require('users/gena/packages:palettes');
 
-// Other layers for reference (optional)
-var ethcanopyheight = ee.Image('users/nlang/ETH_GlobalCanopyHeight_2020_10m_v1');
-Map.addLayer(ethcanopyheight.clip(geometry), {
+// Other layers for reference
+var ethcanopyheight_block_groups = ee.Image('users/nlang/ETH_GlobalCanopyHeight_2020_10m_v1');
+Map.addLayer(ethcanopyheight_block_groups.clip(block_groups), {
     min: 0,
     max: 25,
     palette: palettes.matplotlib.viridis[7]
 }, 'Canopy Height Lang 2022 98%', false);
 
-var umdheight = ee.ImageCollection("users/potapovpeter/GEDI_V27").mosaic();
-Map.addLayer(umdheight.clip(geometry), {
+var umdheight_block_groups = ee.ImageCollection("users/potapovpeter/GEDI_V27").mosaic();
+Map.addLayer(umdheight_block_groups.clip(block_groups), {
+    min: 0,
+    max: 25,
+    palette: palettes.matplotlib.viridis[7]
+}, 'Canopy Height Potapov 2021 95%', false);
+
+var ethcanopyheight_census_tracts = ee.Image('users/nlang/ETH_GlobalCanopyHeight_2020_10m_v1');
+Map.addLayer(ethcanopyheight_census_tracts.clip(census_tracts), {
+    min: 0,
+    max: 25,
+    palette: palettes.matplotlib.viridis[7]
+}, 'Canopy Height Lang 2022 98%', false);
+
+var umdheight_census_tracts = ee.ImageCollection("users/potapovpeter/GEDI_V27").mosaic();
+Map.addLayer(umdheight_census_tracts.clip(census_tracts), {
+    min: 0,
+    max: 25,
+    palette: palettes.matplotlib.viridis[7]
+}, 'Canopy Height Potapov 2021 95%', false);
+
+var ethcanopyheight_urban_areas = ee.Image('users/nlang/ETH_GlobalCanopyHeight_2020_10m_v1');
+Map.addLayer(ethcanopyheight_urban_areas.clip(urban_areas), {
+    min: 0,
+    max: 25,
+    palette: palettes.matplotlib.viridis[7]
+}, 'Canopy Height Lang 2022 98%', false);
+
+var umdheight_urban_areas = ee.ImageCollection("users/potapovpeter/GEDI_V27").mosaic();
+Map.addLayer(umdheight_urban_areas.clip(urban_areas), {
     min: 0,
     max: 25,
     palette: palettes.matplotlib.viridis[7]
 }, 'Canopy Height Potapov 2021 95%', false);
 
 // Our layers (display maskedCanopyHeight)
-Map.addLayer(maskedCanopyHeight.clip(geometry), {
+Map.addLayer(maskedCanopyHeight.clip(block_groups), {
     min: 0,
     max: 25,
     palette: palettes.matplotlib.viridis[7]
 }, 'Canopy Height >= 1 [meters]');
 
+Map.addLayer(maskedCanopyHeight.clip(census_tracts), {
+    min: 0,
+    max: 25,
+    palette: palettes.matplotlib.viridis[7]
+}, 'Canopy Height >= 1 [meters]');
+
+Map.addLayer(maskedCanopyHeight.clip(urban_areas), {
+    min: 0,
+    max: 25,
+    palette: palettes.matplotlib.viridis[7]
+}, 'Canopy Height >= 1 [meters]');
 
 // Export function
-function exportCanopyHeight() {
+function exportCanopyHeight_block_groups() {
     Export.image.toDrive({
-        image: maskedCanopyHeight.clip(geometry),  // Use masked image for export
-        description: 'CanopyHeight_Export',
+        image: maskedCanopyHeight.clip(block_groups),  // Use masked image for export
+        description: 'CanopyHeight_Export_Block_Groups',
         folder: 'EarthEngineExports',
-        region: geometry,
+        region: block_groups.geometry().bounds(),
+        scale: 1,
+        fileFormat: 'GeoTIFF',
+        maxPixels: 1e13
+    });
+}
+
+function exportCanopyHeight_census_tracts() {
+    Export.image.toDrive({
+        image: maskedCanopyHeight.clip(census_tracts),  // Use masked image for export
+        description: 'CanopyHeight_Export_Census_Tracts',
+        folder: 'EarthEngineExports',
+        region: census_tracts.geometry().bounds(),
+        scale: 1,
+        fileFormat: 'GeoTIFF',
+        maxPixels: 1e13
+    });
+}
+
+function exportCanopyHeight_urban_areas() {
+    Export.image.toDrive({
+        image: maskedCanopyHeight.clip(urban_areas),  // Use masked image for export
+        description: 'CanopyHeight_Export_Urban_Areas',
+        folder: 'EarthEngineExports',
+        region: urban_areas.geometry().bounds(),
         scale: 1,
         fileFormat: 'GeoTIFF',
         maxPixels: 1e13
@@ -48,12 +116,26 @@ function exportCanopyHeight() {
 }
 
 // Create export button (this is optional; you can just run `exportCanopyHeight` directly)
-var exportButton = ui.Button({
-    label: 'Export Canopy Height to Drive',
+var exportButtonBlockGroups = ui.Button({
+    label: 'Export Block Groups Canopy Height',
     style: {width: '200px', color: '#4CAF50'},
-    onClick: exportCanopyHeight
+    onClick: exportCanopyHeight_block_groups
+});
+
+var exportButtonCensusTracts = ui.Button({
+    label: 'Export Census Tracts Canopy Height',
+    style: {width: '200px', color: '#4CAF50'},
+    onClick: exportCanopyHeight_census_tracts
+});
+
+var exportButtonUrbanAreas = ui.Button({
+    label: 'Export Urban Areas Canopy Height',
+    style: {width: '200px', color: '#4CAF50'},
+    onClick: exportCanopyHeight_urban_areas
 });
 
 // Display the export button (optional)
-var controlPanel = ui.Panel({widgets: [exportButton]});
+var controlPanel = ui.Panel({
+    widgets: [exportButtonBlockGroups, exportButtonCensusTracts, exportButtonUrbanAreas]
+});
 ui.root.add(controlPanel);
