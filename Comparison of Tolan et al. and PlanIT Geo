@@ -91,7 +91,7 @@ function exportCanopyHeight_block_groups() {
         image: maskedCanopyHeight.clip(block_groups),  // Use masked image for export
         description: 'CanopyHeight_Export_Block_Groups',
         folder: 'EarthEngineExports',
-        region: geometry,
+        region: block_groups.geometry().bounds(),
         scale: 1,
         fileFormat: 'GeoTIFF',
         maxPixels: 1e13
@@ -103,7 +103,7 @@ function exportCanopyHeight_census_tracts() {
         image: maskedCanopyHeight.clip(census_tracts),  // Use masked image for export
         description: 'CanopyHeight_Export_Census_Tracts',
         folder: 'EarthEngineExports',
-        region: geometry,
+        region: census_tracts.geometry().bounds(),
         scale: 1,
         fileFormat: 'GeoTIFF',
         maxPixels: 1e13
@@ -115,7 +115,7 @@ function exportCanopyHeight_urban_areas() {
         image: maskedCanopyHeight.clip(urban_areas),  // Use masked image for export
         description: 'CanopyHeight_Export_Urban_Areas',
         folder: 'EarthEngineExports',
-        region: geometry,
+        region: urban_areas.geometry().bounds(),
         scale: 1,
         fileFormat: 'GeoTIFF',
         maxPixels: 1e13
@@ -123,26 +123,28 @@ function exportCanopyHeight_urban_areas() {
 }
 
 // Create export button (this is optional; you can just run `exportCanopyHeight` directly)
-var exportButton = ui.Button({
-    label: 'Export Canopy Height to Drive',
+var exportButtonBlockGroups = ui.Button({
+    label: 'Export Block Groups Canopy Height',
     style: {width: '200px', color: '#4CAF50'},
     onClick: exportCanopyHeight_block_groups
 });
 
-var exportButton = ui.Button({
-    label: 'Export Canopy Height to Drive',
+var exportButtonCensusTracts = ui.Button({
+    label: 'Export Census Tracts Canopy Height',
     style: {width: '200px', color: '#4CAF50'},
     onClick: exportCanopyHeight_census_tracts
 });
 
-var exportButton = ui.Button({
-    label: 'Export Canopy Height to Drive',
+var exportButtonUrbanAreas = ui.Button({
+    label: 'Export Urban Areas Canopy Height',
     style: {width: '200px', color: '#4CAF50'},
     onClick: exportCanopyHeight_urban_areas
 });
 
 // Display the export button (optional)
-var controlPanel = ui.Panel({widgets: [exportButton]});
+var controlPanel = ui.Panel({
+    widgets: [exportButtonBlockGroups, exportButtonCensusTracts, exportButtonUrbanAreas]
+});
 ui.root.add(controlPanel);
 
 // Extract the PlanIt Geo urban tree canopy area (%) (most current imagery) ("UTC_Pct_y2") from the shapefiles
