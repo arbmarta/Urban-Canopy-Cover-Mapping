@@ -1,143 +1,161 @@
-# --------------------------- REFERENCES -------------------------------------------------------------------------------
-# Manson, S., Schroeder, J., Van Riper, D., Knowles, K., Kugler, T., Roberts, F., & Ruggles, S. (2024). IPUMS National
-# Historical Geographic Information System (Version 19.0) [dataset]. Minneapolis, MN: IPUMS. DOI: 10.18128/D050.V19.0
+// For use in Google Earth Engine
 
-# --------------------------- PACKAGES ---------------------------------------------------------------------------------
-#region
+// Display the census area shapefiles
+var urban_areas = ee.FeatureCollection('users/alexjfmartin/Urban_Areas');
 
-import pandas as pd
-import geopandas as gpd
-import matplotlib.pyplot as plt
-import ee
+// Display the census area shapefiles on the map
+Map.centerObject(urban_areas);
+Map.addLayer(urban_areas, {color: 'red'}, 'Urban Areas');
 
-#endregion
+// Define the canopy height image and apply a mask for canopy height >= 1 meter
+var canopyHeight = ee.ImageCollection('projects/meta-forest-monitoring-okw37/assets/CanopyHeight').mosaic();
+var maskedCanopyHeight = canopyHeight.updateMask(canopyHeight.gte(1));  // Mask out values < 1
 
-# --------------------------- IMPORT SHAPEFILES ------------------------------------------------------------------------
-#region
+// Center the map on the specified geometry region
+Map.centerObject(urban_areas, 10);  // Adjust zoom as needed
 
-# Define path to the shapefiles
-census_block_path = "Canopy Cover Datasets/Census_Block_Groups_Land_Cover_and_Tree_Canopy_Analysis_8507568496359607047/Census_Block_Groups_Land_Cover_and_Tree_Canopy_Analysis.shp"
-census_tract_path = "Canopy Cover Datasets/Census_Tract_Land_Cover_and_Tree_Canopy_Analysis_-7678729890310320705/Census_Tract_Land_Cover_and_Tree_Canopy_Analysis.shp"
-census_urban_areas_path = "Canopy Cover Datasets/Census_Urban_Areas_Land_Cover_and_Tree_Canopy_Analysis_8856831727344188313/Census_Urban_Areas_Land_Cover_and_Tree_Canopy_Analysis.shp"
+// Visualization settings
+var palettes = require('users/gena/packages:palettes');
 
-# Load the shapefiles using Geopandas
-census_block_shapefile = gpd.read_file(census_block_path)
-census_tract_shapefile = gpd.read_file(census_tract_path)
-census_urban_areas_shapefile = gpd.read_file(census_urban_areas_path)
+// Other layers for reference (optional)
+var ethcanopyheight = ee.Image('users/nlang/ETH_GlobalCanopyHeight_2020_10m_v1');
+Map.addLayer(ethcanopyheight.clip(urban_areas), {
+    min: 0,
+    max: 25,
+    palette: palettes.matplotlib.viridis[7]
+}, 'Canopy Height Lang 2022 98%', false);
+
+var umdheight = ee.ImageCollection("users/potapovpeter/GEDI_V27").mosaic();
+Map.addLayer(umdheight.clip(urban_areas), {
+    min: 0,
+    max: 25,
+    palette: palettes.matplotlib.viridis[7]
+}, 'Canopy Height Potapov 2021 95%', false);
+
+// Our layers (display maskedCanopyHeight)
+Map.addLayer(maskedCanopyHeight.clip(urban_areas), {
+    min: 0,
+    max: 25,
+    palette: palettes.matplotlib.viridis[7]
+}, 'Canopy Height >= 1 [meters]');
 
 
-# Display the first few roads of the shapefiles
-print(census_block_shapefile.head())
-print(census_tract_shapefile.head())
-print(census_urban_areas_shapefile.head())
+// Export function
+function exportCanopyHeight() {
+    Export.image.toDrive({
+        image: maskedCanopyHeight.clip(urban_areas),  // Use masked image for export
+        description: 'CanopyHeight_Export',
+        folder: 'EarthEngineExports',
+        region: geometry,
+        scale: 1,
+        fileFormat: 'GeoTIFF',
+        maxPixels: 1e13
+    });
+}
 
-# Count the number of rows in each shapefile
-print(f"Number of rows: {census_block_shapefile.shape[0]}")
-print(f"Number of rows: {census_tract_shapefile.shape[0]}")
-print(f"Number of rows: {census_urban_areas_shapefile.shape[0]}")
+// Create export button (this is optional; you can just run `exportCanopyHeight` directly)
+var exportButton = ui.Button({
+    label: 'Export Canopy Height to Drive',
+    style: {width: '200px', color: '#4CAF50'},
+    onClick: exportCanopyHeight
+});
 
-# Display the columns of the census datasets
-print(census_block_shapefile.columns)
-print(census_tract_shapefile.columns)
-print(census_urban_areas_shapefile.columns)
+// Display the export button (optional)
+var controlPanel = ui.Panel({widgets: [exportButton]});
+ui.root.add(controlPanel);
 
-# Print the coordinate reference systems (CRS)
-print(f"CRS: {census_block_shapefile.crs}")
-print(f"CRS: {census_tract_shapefile.crs}")
-print(f"CRS: {census_urban_areas_shapefile.crs}")
+// Extract the PlanIt Geo urban tree canopy area (%) (most current imagery) ("UTC_Pct_y2") from the shapefiles
+var block_groups_canopycover = block_groups.aggregate_array('UTC_Pct_y2');
+var census_tract_canopycover = census_tract.aggregate_array('UTC_Pct_y2');
+var urban_areas_canopycover = urban_areas.aggregate_array('UTC_Pct_y2');
 
-#endregion
+// Create a canopy cover chart for each PlanIt Geo canopy cover percentage from the shapefiles
+// Chart: census block groups
+var block_groups_canopycover_chart = ui.Chart.array.values({
+  array: block_groups_canopycover,
+  axis: 0
+})
+.setOptions({
+  title: 'Canopy Cover (%) for Block Groups',
+  hAxis: {title: 'Polygon Index'},
+  vAxis: {title: 'Canopy Cover (%)'},
+  pointSize: 4
+});
 
-# --------------------------- DISPLAY SHAPEFILES -----------------------------------------------------------------------
-#region
+print(block_groups_canopycover_chart);
 
-# Plot the Census Block shapefile
-census_block_shapefile.plot(edgecolor="green", figsize=(10, 10))
-plt.title("Census Block Groups")
-plt.xlabel("Longitude")
-plt.ylabel("Latitude")
-plt.show()
+// Chart: census tract groups
+var census_tract_canopycover_chart = ui.Chart.array.values({
+  array: census_tract_canopycover,
+  axis: 0
+})
+.setOptions({
+  title: 'Canopy Cover (%) for Census Tracts',
+  hAxis: {title: 'Polygon Index'},
+  vAxis: {title: 'Canopy Cover (%)'},
+  pointSize: 4
+});
 
-# Plot the Census Tract shapefile
-census_tract_shapefile.plot(edgecolor="green", figsize=(10, 10))
-plt.title("Census Tracts")
-plt.xlabel("Longitude")
-plt.ylabel("Latitude")
-plt.show()
+print(census_tract_canopycover_chart);
 
-# Plot the Urban Areas shapefile
-census_urban_areas_shapefile.plot(edgecolor="green", figsize=(10, 10))
-plt.title("Census Urban Areas")
-plt.xlabel("Longitude")
-plt.ylabel("Latitude")
-plt.show()
+// Chart: urban areas groups
+var urban_areas_canopycover_chart = ui.Chart.array.values({
+  array: urban_areas_canopycover,
+  axis: 0
+})
+.setOptions({
+  title: 'Canopy Cover (%) for Urban Areas',
+  hAxis: {title: 'Polygon Index'},
+  vAxis: {title: 'Canopy Cover (%)'},
+  pointSize: 4
+});
 
-#endregion
+print(urban_areas_canopycover_chart);
 
-# --------------------------- DOWNLOAD 1M DATA -------------------------------------------------------------------------
-#region
+// Extract the PlanIt Geo urban tree canopy area (%) (historic imagery) ("UTC_Pct_y1") from the shapefiles
+var block_groups_canopycover_historic = block_groups.aggregate_array('UTC_Pct_y1');
+var census_tract_canopycover_historic = census_tract.aggregate_array('UTC_Pct_y1');
+var urban_areas_canopycover_historic = urban_areas.aggregate_array('UTC_Pct_y1');
 
-# Trigger the authentication flow
-ee.Authenticate()
+// Create a canopy cover chart for each PlanIt Geo canopy cover percentage from the shapefiles
+// Chart: census block groups
+var block_groups_canopycover_chart_historic = ui.Chart.array.values({
+  array: block_groups_canopycover_historic,
+  axis: 0
+})
+.setOptions({
+  title: 'Canopy Cover (%) for Block Groups (Historic)',
+  hAxis: {title: 'Polygon Index'},
+  vAxis: {title: 'Canopy Cover (%)'},
+  pointSize: 4
+});
 
-# Initialize the library
-ee.Initialize()
+print(block_groups_canopycover_chart_historic);
 
-# Define the canopy height image (from the Meta Forest Monitoring asset)
-canopy_height = ee.ImageCollection('projects/meta-forest-monitoring-okw37/assets/CanopyHeight').mosaic()
+// Chart: census tract groups
+var census_tract_canopycover_chart_historic = ui.Chart.array.values({
+  array: census_tract_canopycover_historic,
+  axis: 0
+})
+.setOptions({
+  title: 'Canopy Cover (%) for Census Tracts (Historic)',
+  hAxis: {title: 'Polygon Index'},
+  vAxis: {title: 'Canopy Cover (%)'},
+  pointSize: 4
+});
 
-# Apply a mask to retain canopy heights >= 1 meter
-masked_canopy_height = canopy_height.updateMask(canopy_height.gte(1))
+print(census_tract_canopycover_chart_historic);
 
-# Clip the masked image to the census areas
-census_block_canopy = masked_canopy_height.clip(census_block_shapefile)
-census_tract_canopy = masked_canopy_height.clip(census_tract_shapefile)
-census_urban_areas_canopy = masked_canopy_height.clip(census_urban_areas_shapefile)
+// Chart: urban areas groups
+var urban_areas_canopycover_chart_historic = ui.Chart.array.values({
+  array: urban_areas_canopycover_historic,
+  axis: 0
+})
+.setOptions({
+  title: 'Canopy Cover (%) for Urban Areas (Historic)',
+  hAxis: {title: 'Polygon Index'},
+  vAxis: {title: 'Canopy Cover (%)'},
+  pointSize: 4
+});
 
-# Calculate the total land area (m²) for each census area
-census_block_with_land_area = census_block_shapefile.map(lambda feature:
-    feature.set('Land Area (m2)', feature.geometry().area()))
-
-census_tract_with_land_area = census_tract_shapefile.map(lambda feature:
-    feature.set('Land Area (m2)', feature.geometry().area()))
-
-census_urban_areas_with_land_area = census_urban_areas_shapefile.map(lambda feature:
-    feature.set('Land Area (m2)', feature.geometry().area()))
-
-# Calculate the canopy cover area for each urban area (in m²)
-census_block_canopy_cover_area = census_block_canopy.gt(0).multiply(ee.Image.pixelArea()) \
-    .reduceRegions(
-        reducer=ee.Reducer.sum(),
-        collection=census_block_with_land_area,
-        scale=1,  # 1-meter resolution
-        crs='EPSG:5070'  # Adjust CRS if needed
-    )
-
-census_tract_canopy_cover_area = census_tract_canopy.gt(0).multiply(ee.Image.pixelArea()) \
-    .reduceRegions(
-        reducer=ee.Reducer.sum(),
-        collection=census_tract_with_land_area,
-        scale=1,  # 1-meter resolution
-        crs='EPSG:5070'  # Adjust CRS if needed
-    )
-
-census_urban_areas_canopy_cover_area = census_urban_areas_canopy.gt(0).multiply(ee.Image.pixelArea()) \
-    .reduceRegions(
-        reducer=ee.Reducer.sum(),
-        collection=census_urban_areas_with_land_area,
-        scale=1,  # 1-meter resolution
-        crs='EPSG:5070'  # Adjust CRS if needed
-    )
-
-# Add the proportion of canopy cover as a property
-census_block_canopy_cover_proportion = census_block_canopy_cover_area.map(lambda feature:
-    feature.set('canopy_cover_proportion',
-                ee.Number(feature.get('sum')).divide(feature.get('land_area_m2'))))
-
-census_tract_canopy_cover_proportion = census_tract_canopy_cover_area.map(lambda feature:
-    feature.set('canopy_cover_proportion',
-                ee.Number(feature.get('sum')).divide(feature.get('land_area_m2'))))
-
-census_urban_areas_canopy_cover_proportion = census_urban_areas_canopy_cover_area.map(lambda feature:
-    feature.set('canopy_cover_proportion',
-                ee.Number(feature.get('sum')).divide(feature.get('land_area_m2'))))
+print(urban_areas_canopycover_chart_historic);
